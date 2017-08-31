@@ -1,6 +1,9 @@
 package main
 
 import (
+	_ "appstore/pkg/env"
+	_ "appstore/pkg/localrepo"
+	_ "appstore/pkg/store"
 	_ "appstore/routers"
 
 	"github.com/astaxie/beego"
