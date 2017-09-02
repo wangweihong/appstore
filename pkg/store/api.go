@@ -3,16 +3,18 @@ package store
 import (
 	"appstore/pkg/log"
 	"fmt"
+	"os"
 
 	"k8s.io/helm/pkg/getter"
 	helm_env "k8s.io/helm/pkg/helm/environment"
 	"k8s.io/helm/pkg/helm/helmpath"
-	"k8s.io/helm/pkg/repo"
+	helm_repo "k8s.io/helm/pkg/repo"
 )
 
 var (
 	ErrGroupNotFound = fmt.Sprintf("group not found")
 	ErrRepoExists    = fmt.Sprintf("repo has exists")
+	ErrRepoNotFound  = fmt.Sprintf("repo not found")
 )
 
 type RepoError struct {
@@ -24,43 +26,49 @@ func (e *RepoError) Error() string {
 	return fmt.Sprintf(e.Message)
 }
 
-//
-/*
-//remote
-	err = AddRepo("test1", "lspardaaaaaaaa", "https://kubernetes-charts.storage.googleapis.com", home, "", "", "", false)
-	if err != nil {
-		panic(err.Error())
-	}
-	//local
-	err = AddRepo("test1", "local1234l", "http://127.0.0.1:8879/charts", home, "", "", "", false)
-	if err != nil {
-		panic(err.Error())
-	}
-*/
+type RepoParam struct {
+	Name     string `json:"name"`
+	Url      string `json:"url"`
+	CertFile string `json:"certfile"`
+	KeyFile  string `json:"keyfile"`
+	CAFile   string `json:"cafile"`
+}
 
-func AddRepo(groupName, name, url string, home helmpath.Home, certFile, keyFile, caFile string, update bool) error {
+func AddRepo(groupName string, param RepoParam) error {
+	return addOrUpdateRepo(helm.Home, groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, false)
+}
+
+func UpateRepo(groupName string, param RepoParam) error {
+	return addOrUpdateRepo(helm.Home, groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, true)
+}
+
+func addOrUpdateRepo(home helmpath.Home, groupName, name, url string, certFile, keyFile, caFile string, update bool) error {
 	//检测组
 	g, ok := helm.RepoGroups[groupName]
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}
 
-	f, err := repo.LoadRepositoriesFile(home.RepositoryFile())
+	realname := GenerateRealRepoName(groupName, name)
+
+	f, err := helm_repo.LoadRepositoriesFile(home.RepositoryFile())
 	if err != nil {
 		return log.ErrorPrint(err)
 	}
 
-	realname := generateRealRepoName(groupName, name)
-
-	if !update {
-		_, ok := g.Repos[realname]
-		if ok {
+	_, ok = g.Repos[realname]
+	if ok {
+		if !update {
 			return log.ErrorPrint(ErrRepoExists)
+		}
+	} else {
+		if update {
+			return log.ErrorPrint(ErrRepoNotFound)
 		}
 	}
 
-	cif := home.CacheIndex(name)
-	c := repo.Entry{
+	cif := home.CacheIndex(realname)
+	c := helm_repo.Entry{
 		Name:     realname,
 		Cache:    cif,
 		URL:      url,
@@ -69,7 +77,7 @@ func AddRepo(groupName, name, url string, home helmpath.Home, certFile, keyFile,
 		CAFile:   caFile,
 	}
 	settings := helm_env.EnvSettings{Home: home}
-	r, err := repo.NewChartRepository(&c, getter.All(settings))
+	r, err := helm_repo.NewChartRepository(&c, getter.All(settings))
 	if err != nil {
 		return log.ErrorPrint(err)
 	}
@@ -84,4 +92,90 @@ func AddRepo(groupName, name, url string, home helmpath.Home, certFile, keyFile,
 		return log.DebugPrint(err)
 	}
 	return nil
+}
+
+func ListAllRepos() map[string]RepoGroup {
+
+	return helm.RepoGroups
+}
+
+func ListRepos(groupName string) (map[string]Repo, error) {
+
+	repos := make(map[string]Repo)
+	g, ok := helm.RepoGroups[groupName]
+	if !ok {
+		return nil, log.ErrorPrint(ErrGroupNotFound)
+	}
+	for k, v := range g.Repos {
+		_, userRepoName := fetchGroupRepoName(k)
+
+		repos[userRepoName] = v
+	}
+	return repos, nil
+}
+
+func GetRepo(groupName, repoName string) (*Repo, error) {
+	g, ok := helm.RepoGroups[groupName]
+	if !ok {
+		return nil, log.ErrorPrint(ErrGroupNotFound)
+	}
+
+	realname := GenerateRealRepoName(groupName, repoName)
+	arepo, ok := g.Repos[realname]
+	if !ok {
+		return nil, log.ErrorPrint(ErrRepoNotFound)
+	}
+
+	return &arepo, nil
+}
+
+func DeleteRepo(groupName, repoName string) error {
+	return deleteRepo(helm.Home, groupName, repoName)
+}
+func deleteRepo(home helmpath.Home, groupName, repoName string) error {
+	g, ok := helm.RepoGroups[groupName]
+	if !ok {
+		return log.ErrorPrint(ErrGroupNotFound)
+	}
+	realname := GenerateRealRepoName(groupName, repoName)
+
+	_, ok = g.Repos[realname]
+	if !ok {
+		return log.ErrorPrint(ErrRepoNotFound)
+	}
+
+	r, err := helm_repo.LoadRepositoriesFile(home.RepositoryFile())
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if !r.Remove(realname) {
+		return log.DebugPrint(ErrRepoNotFound)
+	}
+
+	if err := r.WriteFile(home.RepositoryFile(), 0644); err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if err := removeRepoCache(realname, home); err != nil {
+
+		return log.ErrorPrint(err)
+	}
+
+	return nil
+
+}
+
+func removeRepoCache(name string, home helmpath.Home) error {
+	if _, err := os.Stat(home.CacheIndex(name)); err == nil {
+		err = os.Remove(home.CacheIndex(name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Home() helmpath.Home {
+	return helm.Home
 }

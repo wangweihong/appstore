@@ -6,88 +6,74 @@ import (
 
 func init() {
 
-	beego.GlobalControllerRouter["appstore/controllers:ObjectController"] = append(beego.GlobalControllerRouter["appstore/controllers:ObjectController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Post",
-			Router: `/`,
-			AllowHTTPMethods: []string{"post"},
+			Method: "ListRepos",
+			Router: `/repos/group/:group`,
+			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:ObjectController"] = append(beego.GlobalControllerRouter["appstore/controllers:ObjectController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Get",
-			Router: `/:objectId`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "ListAllRepos",
+			Router: `/repos`,
+			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:ObjectController"] = append(beego.GlobalControllerRouter["appstore/controllers:ObjectController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "GetAll",
-			Router: `/`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "AddRepo",
+			Router: `/repos/group/:group`,
+			AllowHTTPMethods: []string{"Post"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:ObjectController"] = append(beego.GlobalControllerRouter["appstore/controllers:ObjectController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Put",
-			Router: `/:objectId`,
-			AllowHTTPMethods: []string{"put"},
+			Method: "DeleteRepo",
+			Router: `/repo/:repo/group/:group`,
+			AllowHTTPMethods: []string{"Delete"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:ObjectController"] = append(beego.GlobalControllerRouter["appstore/controllers:ObjectController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Delete",
-			Router: `/:objectId`,
-			AllowHTTPMethods: []string{"delete"},
+			Method: "UpdateRepo",
+			Router: `/repos/group/:group`,
+			AllowHTTPMethods: []string{"Put"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Post",
-			Router: `/`,
-			AllowHTTPMethods: []string{"post"},
+			Method: "ListCharts",
+			Router: `/repo/:repo/group/:group/charts`,
+			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "GetAll",
-			Router: `/`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "InspectChart",
+			Router: `/repo/:repo/group/:group/chart/:chart`,
+			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Get",
-			Router: `/:uid`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "GetChartTemplate",
+			Router: `/repo/:repo/group/:group/chart/:chart/templates`,
+			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Put",
-			Router: `/:uid`,
-			AllowHTTPMethods: []string{"put"},
+			Method: "GetChartValue",
+			Router: `/repo/:repo/group/:group/chart/:chart/values`,
+			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "Delete",
-			Router: `/:uid`,
-			AllowHTTPMethods: []string{"delete"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
-		beego.ControllerComments{
-			Method: "Login",
-			Router: `/login`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["appstore/controllers:UserController"] = append(beego.GlobalControllerRouter["appstore/controllers:UserController"],
-		beego.ControllerComments{
-			Method: "Logout",
-			Router: `/logout`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "GetChartParsed",
+			Router: `/repo/:repo/group/:group/chart/:chart/resource`,
+			AllowHTTPMethods: []string{"Post"},
 			Params: nil})
 
 }

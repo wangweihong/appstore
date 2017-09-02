@@ -27,17 +27,17 @@ func InitLocalRepoServer() error {
 
 func init() {
 	go func() {
-		for {
-			log.DebugPrint("start to run local repo server ...")
-			err := InitLocalRepoServer()
-			if err != nil {
-				log.ErrorPrint("local repo server die:%v", err)
-				log.ErrorPrint("restart again...")
-			} else {
-				log.DebugPrint("run local repo server success...")
-			}
-
+		//		for {
+		log.DebugPrint("start to run local repo server ...")
+		err := InitLocalRepoServer()
+		if err != nil {
+			log.ErrorPrint("local repo server die:%v", err)
+			log.ErrorPrint("restart again...")
+		} else {
+			log.DebugPrint("run local repo server success...")
 		}
+
+		//		}
 
 	}()
 

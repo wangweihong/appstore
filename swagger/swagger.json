@@ -1,0 +1,414 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "beego Test API",
+        "description": "beego has a very cool tools to autogenerate documents for your API",
+        "version": "1.0.0",
+        "termsOfService": "http://beego.me/",
+        "contact": {
+            "email": "astaxie@gmail.com"
+        },
+        "license": {
+            "name": "Url http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "basePath": "/v1/appstore",
+    "paths": {
+        "/store/repo/{repo}/group/{group}": {
+            "delete": {
+                "tags": [
+                    "store"
+                ],
+                "description": "删除仓库",
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repo/{repo}/group/{group}/chart/{chart}": {
+            "get": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "chart",
+                        "description": "模板",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "version",
+                        "description": "指定版本",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repo/{repo}/group/{group}/chart/{chart}/resource": {
+            "post": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "chart",
+                        "description": "模板",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "version",
+                        "description": "指定版本",
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "解析参数",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ChartParseArgs"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repo/{repo}/group/{group}/chart/{chart}/templates": {
+            "get": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "chart",
+                        "description": "模板",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "version",
+                        "description": "指定版本",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repo/{repo}/group/{group}/chart/{chart}/values": {
+            "get": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "chart",
+                        "description": "模板",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "version",
+                        "description": "指定版本",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repo/{repo}/group/{group}/charts": {
+            "get": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repos": {
+            "get": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repos/group/{group}": {
+            "get": {
+                "tags": [
+                    "store"
+                ],
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            },
+            "put": {
+                "tags": [
+                    "store"
+                ],
+                "description": "更新仓库",
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "仓库参数",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            },
+            "post": {
+                "tags": [
+                    "store"
+                ],
+                "description": "添加新的仓库",
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "仓库参数",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        }
+    },
+    "definitions": {
+        "ChartParseArgs": {
+            "title": "ChartParseArgs",
+            "type": "object",
+            "properties": {
+                "namespace": {
+                    "type": "string"
+                },
+                "releasename": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

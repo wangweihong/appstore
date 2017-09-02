@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"appstore/pkg/env"
 	"appstore/pkg/log"
@@ -43,11 +42,11 @@ func (r Repo) String() string {
 	return fmt.Sprintf("RepoName:%v, Cache:%v, Url:%v", r.Entry.Name, r.Entry.Cache, r.Entry.URL)
 }
 
-func generateRealRepoName(group, repoName string) string {
+func GenerateRealRepoName(group, repoName string) string {
 	return group + splitor + repoName
 }
 
-func fetchGroupName(repoName string) (string, string) {
+func fetchGroupRepoName(repoName string) (string, string) {
 	splits := strings.SplitN(repoName, splitor, 2)
 	if len(splits) != 2 {
 		return "", ""
@@ -72,7 +71,7 @@ func InitHelmManager(home helmpath.Home) error {
 
 	groups := helm.RepoGroups
 	for _, v := range f.Repositories {
-		groupName, _ := fetchGroupName(v.Name)
+		groupName, _ := fetchGroupRepoName(v.Name)
 		//忽略非组repos
 		if groupName == "" {
 			continue
@@ -107,9 +106,17 @@ func init() {
 	}
 
 	log.DebugPrint("init complete")
-	time.Sleep(10 * time.Second)
-	err = AddRepo("test1", "local1234l", "http://127.0.0.1:8879/charts", home, "", "", "", false)
-	if err != nil {
-		panic(err.Error())
-	}
+	//	time.Sleep(10 * time.Second)
+	/*
+		err = AddRepo("test1", "local1234l", "http://127.0.0.1:8879/charts", home, "", "", "", false)
+		if err != nil {
+			panic(err.Error())
+		}
+	*/
+	/*
+		err = DeleteRepo("test1", "local1234l", home)
+		if err != nil {
+			panic(err.Error())
+		}
+	*/
 }

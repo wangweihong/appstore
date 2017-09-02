@@ -58,7 +58,7 @@ func processEvent(home helmpath.Home, ei notify.EventInfo) {
 		return
 	}
 
-	//	log.DebugPrint("<---watch file event: %v, type: %v, path:%v", e.Event, e.Type, e.Path)
+	log.DebugPrint("<---watch file event: %v, type: %v, path:%v", e.Event, e.Type, e.Path)
 	//
 
 	//修改repositoryFile文件
@@ -66,7 +66,7 @@ func processEvent(home helmpath.Home, ei notify.EventInfo) {
 	switch e.Type {
 	case RepoDir:
 	case RepoFile:
-		if e.Event == notify.Write {
+		if e.Event == notify.Write || e.Event == notify.Create {
 			//读取文件更新内容
 			go doRepoChange(home)
 		}
