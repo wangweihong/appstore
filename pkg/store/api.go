@@ -4,6 +4,7 @@ import (
 	"appstore/pkg/log"
 	"fmt"
 	"os"
+	"strings"
 
 	"k8s.io/helm/pkg/getter"
 	helm_env "k8s.io/helm/pkg/helm/environment"
@@ -127,6 +128,14 @@ func GetRepo(groupName, repoName string) (*Repo, error) {
 	}
 
 	return &arepo, nil
+}
+
+func IsRepoRemote(repo *Repo) bool {
+	prefix := "http://127.0.0.1"
+	if strings.HasPrefix(repo.Entry.URL, prefix) {
+		return false
+	}
+	return true
 }
 
 func DeleteRepo(groupName, repoName string) error {

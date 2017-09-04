@@ -36,7 +36,8 @@ func (this *StoreController) ListRepos() {
 	for k, v := range hrepos {
 		var re models.Repo
 		re.Name = k
-		re.Url = v.Entry.URL
+		re.URL = v.Entry.URL
+		re.Remote = store.IsRepoRemote(&v)
 		res = append(res, re)
 
 	}
@@ -44,9 +45,37 @@ func (this *StoreController) ListRepos() {
 	this.normalReturn(res)
 }
 
-// 获取所有仓库信息
+// 获取指定组指定仓库信息
 // @Title 仓库
-// @Description
+// @Description 获取指定组指定仓库信息
+// @Param Token header string true 'Token'
+// @Param group path string true "组名"
+// @Param repo path string true "仓库"
+// @Success 201 {string}  success!
+// @Failure 500
+// @router /repo/:repo/group/:group [Get]
+func (this *StoreController) GetRepo() {
+	groupName := this.Ctx.Input.Param(":group")
+	repoName := this.Ctx.Input.Param(":repo")
+
+	repo, err := store.GetRepo(groupName, repoName)
+	if err != nil {
+		this.errReturn(err, 500)
+		return
+	}
+
+	remote := store.IsRepoRemote(repo)
+	var mrepo models.Repo
+	mrepo.Name = repo.Entry.Name
+	mrepo.URL = repo.Entry.URL
+	mrepo.Remote = remote
+
+	this.normalReturn(mrepo)
+}
+
+// 获取所有组所有仓库信息
+// @Title 仓库
+// @Description 获取所有组所有仓库信息
 // @Success 201 {string}  success!
 // @Failure 500
 // @router /repos [Get]

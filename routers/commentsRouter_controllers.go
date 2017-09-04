@@ -15,6 +15,13 @@ func init() {
 
 	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
+			Method: "GetRepo",
+			Router: `/repo/:repo/group/:group`,
+			AllowHTTPMethods: []string{"Get"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
+		beego.ControllerComments{
 			Method: "ListAllRepos",
 			Router: `/repos`,
 			AllowHTTPMethods: []string{"Get"},
