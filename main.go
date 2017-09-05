@@ -3,6 +3,7 @@ package main
 import (
 	_ "appstore/pkg/env"
 	_ "appstore/pkg/localrepo"
+	_ "appstore/pkg/start"
 	_ "appstore/pkg/store"
 	_ "appstore/routers"
 

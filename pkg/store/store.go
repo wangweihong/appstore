@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 
-	"appstore/pkg/env"
 	"appstore/pkg/log"
 
 	"k8s.io/helm/pkg/helm/helmpath"
@@ -92,18 +91,22 @@ func InitHelmManager(home helmpath.Home) error {
 }
 
 func init() {
-	home := helmpath.Home(env.HelmHome)
+	/*
+		home := helmpath.Home(env.HelmHome)
 
-	err := InitHelmManager(home)
-	if err != nil {
-		panic(err.Error())
-	}
-	log.DebugPrint(*helm)
+		err := InitHelmManager(home)
+		if err != nil {
+			panic(err.Error())
+		}
+		log.DebugPrint(*helm)
+	*/
 
-	err = WatchDir(home)
-	if err != nil {
-		panic(err.Error())
-	}
+	/*
+		err = WatchDir(home)
+		if err != nil {
+			panic(err.Error())
+		}
+	*/
 
 	log.DebugPrint("init complete")
 	//	time.Sleep(10 * time.Second)

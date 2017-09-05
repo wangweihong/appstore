@@ -25,6 +25,7 @@ func InitLocalRepoServer() error {
 
 }
 
+/*
 func init() {
 	go func() {
 		//		for {
@@ -42,3 +43,4 @@ func init() {
 	}()
 
 }
+*/
