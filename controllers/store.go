@@ -189,8 +189,7 @@ func (this *StoreController) ListCharts() {
 	group := this.Ctx.Input.Param(":group")
 	repo := this.Ctx.Input.Param(":repo")
 
-	home := store.Home()
-	rets, err := charts.ListCharts(group, repo, home)
+	rets, err := charts.ListCharts(group, repo)
 	if err != nil {
 		this.errReturn(err, 500)
 		return

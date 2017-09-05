@@ -22,7 +22,6 @@ import (
 	helm_engine "k8s.io/helm/pkg/engine"
 	helm_chart "k8s.io/helm/pkg/proto/hapi/chart"
 
-	"k8s.io/helm/pkg/helm/helmpath"
 	helm_util "k8s.io/helm/pkg/releaseutil"
 )
 
@@ -131,7 +130,7 @@ func InspectChart(groupName, repoName, name string, chartversion *string, keyrin
 		version = *chartversion
 	}
 
-	cp, err := locateChartPath(store.Home(), groupName, repoName, name, version, keyring)
+	cp, err := locateChartPath(groupName, repoName, name, version, keyring)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +158,11 @@ func InspectChart(groupName, repoName, name string, chartversion *string, keyrin
 
 //name是包名
 
-func locateChartPath(home helmpath.Home, groupName, repoName, name, version string, keyring string) (*string, error) {
+func locateChartPath(groupName, repoName, name, version string, keyring string) (*string, error) {
+	home, err := store.GetGroupHelmHome(groupName)
+	if err != nil {
+		return nil, log.DebugPrint(err)
+	}
 
 	name = strings.TrimSpace(name)
 	version = strings.TrimSpace(version)
@@ -167,13 +170,14 @@ func locateChartPath(home helmpath.Home, groupName, repoName, name, version stri
 	if err != nil {
 		return nil, err
 	}
+
 	if _, err := os.Stat(home.Archive()); os.IsNotExist(err) {
 		os.MkdirAll(home.Archive(), 0744)
 	}
 
-	settings := helm_env.EnvSettings{Home: home}
+	settings := helm_env.EnvSettings{Home: *home}
 	dl := helm_downloader.ChartDownloader{
-		HelmHome: home,
+		HelmHome: *home,
 		Out:      os.Stdout,
 		Keyring:  keyring,
 		Getters:  helm_getter.All(settings),

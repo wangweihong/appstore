@@ -19,15 +19,20 @@ type Result struct {
 	Chart *helm_repo.ChartVersion
 }
 
-func ListCharts(group, repoName string, home helmpath.Home) ([]Result, error) {
-	_, err := store.GetRepo(group, repoName)
+func ListCharts(group, repoName string) ([]Result, error) {
+	home, err := store.GetGroupHelmHome(group)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = store.GetRepo(group, repoName)
 	if err != nil {
 		return nil, err
 	}
 
 	realRepoName := store.GenerateRealRepoName(group, repoName)
 
-	index, err := buildIndex(home, &buildOption{repoName: realRepoName})
+	index, err := buildIndex(*home, &buildOption{repoName: realRepoName})
 	if err != nil {
 		return nil, err
 	}

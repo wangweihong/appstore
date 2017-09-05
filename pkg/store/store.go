@@ -2,13 +2,14 @@ package store
 
 import (
 	"fmt"
-	"strings"
+	"io/ioutil"
 	"sync"
 
+	"appstore/pkg/env"
 	"appstore/pkg/log"
 
 	"k8s.io/helm/pkg/helm/helmpath"
-	"k8s.io/helm/pkg/repo"
+	helm_repo "k8s.io/helm/pkg/repo"
 )
 
 const (
@@ -21,19 +22,20 @@ var (
 )
 
 type RepoGroup struct {
+	Home  helmpath.Home
 	Repos map[string]Repo
 }
 
 type HelmManager struct {
 	RepoGroups map[string]RepoGroup
-	Home       helmpath.Home
+	//	Home       helmpath.Home
 }
 
 //在存储时,需要根据组名,进行映射
 //这里保存的repo名,和用户看到的repo名不一样
 //这里保存的是实际在文件中保存的repo名: <组名>__<用户看到的repo名>
 type Repo struct {
-	Entry *repo.Entry
+	Entry *helm_repo.Entry
 }
 
 func (r Repo) String() string {
@@ -42,9 +44,11 @@ func (r Repo) String() string {
 }
 
 func GenerateRealRepoName(group, repoName string) string {
-	return group + splitor + repoName
+
+	return repoName
 }
 
+/*
 func fetchGroupRepoName(repoName string) (string, string) {
 	splits := strings.SplitN(repoName, splitor, 2)
 	if len(splits) != 2 {
@@ -52,54 +56,79 @@ func fetchGroupRepoName(repoName string) (string, string) {
 	}
 	return splits[0], splits[1]
 }
+*/
 
-func InitHelmManager(home helmpath.Home) error {
+func InitHelmManager(home string) error {
 	helm = &HelmManager{}
-	helm.Home = home
+	//	helm.Home = home
 	helm.RepoGroups = make(map[string]RepoGroup)
 
-	//需要加锁,如果底层文件不存在,应该先构建
-	f, err := repo.LoadRepositoriesFile(home.RepositoryFile())
+	groupfiles, err := ioutil.ReadDir(home)
 	if err != nil {
-		return err
-	}
-
-	if len(f.Repositories) == 0 {
-		return nil
+		return log.DebugPrint(err)
 	}
 
 	groups := helm.RepoGroups
-	for _, v := range f.Repositories {
-		groupName, _ := fetchGroupRepoName(v.Name)
-		//忽略非组repos
-		if groupName == "" {
-			continue
+	for _, f := range groupfiles {
+		groupName := f.Name()
+		var group RepoGroup
+		group.Repos = make(map[string]Repo)
+		group.Home = helmpath.Home(home + "/" + groupName)
+
+		repofile, err := helm_repo.LoadRepositoriesFile(group.Home.RepositoryFile())
+		if err != nil {
+			return log.DebugPrint(err)
 		}
-		g, ok := groups[groupName]
-		if ok {
-			g.Repos[v.Name] = Repo{Entry: v}
-			groups[groupName] = g
-		} else {
-			var g RepoGroup
-			g.Repos = make(map[string]Repo)
-			g.Repos[v.Name] = Repo{Entry: v}
-			groups[groupName] = g
+		for _, v := range repofile.Repositories {
+			group.Repos[v.Name] = Repo{Entry: v}
+
 		}
+		groups[groupName] = group
 	}
+	helm.RepoGroups = groups
+
+	//需要加锁,如果底层文件不存在,应该先构建
+	/*
+		f, err := repo.LoadRepositoriesFile(home.RepositoryFile())
+		if err != nil {
+			return err
+		}
+
+		if len(f.Repositories) == 0 {
+			return nil
+		}
+
+		groups := helm.RepoGroups
+		for _, v := range f.Repositories {
+			groupName, _ := fetchGroupRepoName(v.Name)
+			//忽略非组repos
+			if groupName == "" {
+				continue
+			}
+			g, ok := groups[groupName]
+			if ok {
+				g.Repos[v.Name] = Repo{Entry: v}
+				groups[groupName] = g
+			} else {
+				var g RepoGroup
+				g.Repos = make(map[string]Repo)
+				g.Repos[v.Name] = Repo{Entry: v}
+				groups[groupName] = g
+			}
+		}
+	*/
 
 	return nil
 }
 
 func init() {
-	/*
-		home := helmpath.Home(env.HelmHome)
+	//home := helmpath.Home(env.HelmHome)
 
-		err := InitHelmManager(home)
-		if err != nil {
-			panic(err.Error())
-		}
-		log.DebugPrint(*helm)
-	*/
+	err := InitHelmManager(env.StoreHome)
+	if err != nil {
+		panic(err.Error())
+	}
+	log.DebugPrint(*helm)
 
 	/*
 		err = WatchDir(home)

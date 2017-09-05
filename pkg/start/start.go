@@ -3,6 +3,7 @@ package start
 import (
 	"appstore/pkg/env"
 	"appstore/pkg/group"
+
 	"appstore/pkg/log"
 	"fmt"
 	"io/ioutil"
@@ -41,6 +42,7 @@ func InitDirectory(home string) error {
 	}
 
 	for k, _ := range groups {
+		ghome := home + "/" + k
 		found := false
 		for _, f := range files {
 			if k == f.Name() && f.IsDir() {
@@ -48,19 +50,30 @@ func InitDirectory(home string) error {
 			}
 		}
 		if !found {
-			log.DebugPrint("new group %v, start to create %v", k, home+"/"+k)
-			err := os.MkdirAll(home+"/"+k, 0755)
+			log.DebugPrint("new group %v, start to create %v", k, ghome)
+			err := os.MkdirAll(ghome, 0755)
 			if err != nil {
 				return log.DebugPrint(err)
 			}
-			err = env.InitHelmEnv(home + "/" + k)
+			err = env.InitHelmEnv(ghome)
 			if err != nil {
 				return log.DebugPrint(err)
 			}
 
+		} else {
+			//TODO:检测该目录是否是helm init过的目录,没有则进行helm init
+			log.DebugPrint("group %v exists, check if helm dir architecture ", ghome)
+			err := env.EnsureDirectories(ghome)
+			if err != nil {
+				return log.ErrorPrint(err)
+			}
+
+			err = env.EnsureDefaultRepoFile(ghome)
+			if err != nil {
+				return log.ErrorPrint(err)
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -69,5 +82,4 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-
 }

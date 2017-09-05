@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	ErrGroupNotFound = fmt.Sprintf("group not found")
-	ErrRepoExists    = fmt.Sprintf("repo has exists")
-	ErrRepoNotFound  = fmt.Sprintf("repo not found")
+	ErrGroupNotFound = fmt.Errorf("group not found")
+	ErrRepoExists    = fmt.Errorf("repo has exists")
+	ErrRepoNotFound  = fmt.Errorf("repo not found")
 )
 
 type RepoError struct {
@@ -35,22 +35,37 @@ type RepoParam struct {
 	CAFile   string `json:"cafile"`
 }
 
+func GetGroupHelmHome(groupName string) (*helmpath.Home, error) {
+	Locker.Lock()
+	defer Locker.Unlock()
+
+	group, ok := helm.RepoGroups[groupName]
+	if !ok {
+		return nil, ErrGroupNotFound
+	}
+	home := group.Home
+	return &home, nil
+
+}
+
 func AddRepo(groupName string, param RepoParam) error {
-	return addOrUpdateRepo(helm.Home, groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, false)
+	return addOrUpdateRepo(groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, false)
 }
 
 func UpateRepo(groupName string, param RepoParam) error {
-	return addOrUpdateRepo(helm.Home, groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, true)
+	return addOrUpdateRepo(groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, true)
 }
 
-func addOrUpdateRepo(home helmpath.Home, groupName, name, url string, certFile, keyFile, caFile string, update bool) error {
+func addOrUpdateRepo(groupName, name, url string, certFile, keyFile, caFile string, update bool) error {
 	//检测组
 	g, ok := helm.RepoGroups[groupName]
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}
+	home := g.Home
 
-	realname := GenerateRealRepoName(groupName, name)
+	//	realname := GenerateRealRepoName(groupName, name)
+	realname := name
 
 	f, err := helm_repo.LoadRepositoriesFile(home.RepositoryFile())
 	if err != nil {
@@ -108,7 +123,7 @@ func ListRepos(groupName string) (map[string]Repo, error) {
 		return nil, log.ErrorPrint(ErrGroupNotFound)
 	}
 	for k, v := range g.Repos {
-		_, userRepoName := fetchGroupRepoName(k)
+		userRepoName := k
 
 		repos[userRepoName] = v
 	}
@@ -139,14 +154,16 @@ func IsRepoRemote(repo *Repo) bool {
 }
 
 func DeleteRepo(groupName, repoName string) error {
-	return deleteRepo(helm.Home, groupName, repoName)
+	return deleteRepo(groupName, repoName)
 }
-func deleteRepo(home helmpath.Home, groupName, repoName string) error {
+func deleteRepo(groupName, repoName string) error {
 	g, ok := helm.RepoGroups[groupName]
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}
-	realname := GenerateRealRepoName(groupName, repoName)
+	home := g.Home
+	//	realname := GenerateRealRepoName(groupName, repoName)
+	realname := repoName
 
 	_, ok = g.Repos[realname]
 	if !ok {
@@ -185,6 +202,8 @@ func removeRepoCache(name string, home helmpath.Home) error {
 	return nil
 }
 
+/*
 func Home() helmpath.Home {
 	return helm.Home
 }
+*/
