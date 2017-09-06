@@ -65,7 +65,7 @@ func processEvent(home string, ei notify.EventInfo) {
 	case RepoFile:
 		if e.Event == notify.Write || e.Event == notify.Create {
 			//读取文件更新内容
-			go doRepoChange(home)
+			//			go doRepoChange(home)
 		}
 
 		if e.Event == notify.Remove {
@@ -121,6 +121,7 @@ func genereteEvent(path string, home string, event notify.Event) *Event {
 	return nil
 }
 
+/*
 func doRepoChange(home string) {
 	Locker.Lock()
 	defer Locker.Unlock()
@@ -132,3 +133,4 @@ func doRepoChange(home string) {
 	}
 	log.DebugPrint(helm)
 }
+*/

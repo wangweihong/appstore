@@ -57,30 +57,44 @@ func init() {
 
 	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
-			Method: "InspectChart",
+			Method: "GetChart",
 			Router: `/repo/:repo/group/:group/chart/:chart`,
 			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
 	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
+			Method: "InspectChart",
+			Router: `/repo/:repo/group/:group/chart/:chart/version/:version`,
+			AllowHTTPMethods: []string{"Get"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
+		beego.ControllerComments{
 			Method: "GetChartTemplate",
-			Router: `/repo/:repo/group/:group/chart/:chart/templates`,
+			Router: `/repo/:repo/group/:group/chart/:chart/version/:version/templates`,
 			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
 	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
 			Method: "GetChartValue",
-			Router: `/repo/:repo/group/:group/chart/:chart/values`,
+			Router: `/repo/:repo/group/:group/chart/:chart/version/:version/values`,
 			AllowHTTPMethods: []string{"Get"},
 			Params: nil})
 
 	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
 			Method: "GetChartParsed",
-			Router: `/repo/:repo/group/:group/chart/:chart/resource`,
+			Router: `/repo/:repo/group/:group/chart/:chart/version/:version/resource`,
 			AllowHTTPMethods: []string{"Post"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
+		beego.ControllerComments{
+			Method: "DeleteChart",
+			Router: `/repo/:repo/group/:group/chart/:chart`,
+			AllowHTTPMethods: []string{"Delete"},
 			Params: nil})
 
 }

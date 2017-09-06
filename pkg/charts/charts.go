@@ -124,12 +124,39 @@ func ParseChart(groupName, repoName, name string, strValue *string, chartVersion
 
 }
 
+func GetChart(groupName, repoName, name string) ([]helm_repo.ChartVersion, error) {
+	repo, err := store.GetRepo(groupName, repoName)
+	if err != nil {
+		return nil, log.DebugPrint(err)
+	}
+
+	index := repo.Entry.Cache
+	indexF, err := helm_repo.LoadIndexFile(index)
+	if err != nil {
+		return nil, log.DebugPrint(err)
+	}
+
+	cv, ok := indexF.Entries[name]
+	if !ok {
+		return nil, log.DebugPrint("chart %v doesn't exist int repo %v", name, repoName)
+	}
+
+	vs := make([]helm_repo.ChartVersion, 0)
+	for _, v := range cv {
+		vs = append(vs, *v)
+	}
+	return vs, nil
+}
+
+//TODO:需要加锁
+//TODO:需要获取获取的version
 func InspectChart(groupName, repoName, name string, chartversion *string, keyring string) (*helm_chart.Chart, error) {
 	var version string
 	if chartversion != nil {
 		version = *chartversion
 	}
 
+	//获取指定包的路径
 	cp, err := locateChartPath(groupName, repoName, name, version, keyring)
 	if err != nil {
 		return nil, err
@@ -156,8 +183,98 @@ func InspectChart(groupName, repoName, name string, chartversion *string, keyrin
 	return chartRequested, nil
 }
 
+func DeleteChart(groupName, repoName, name string, chartVersion *string, keyring string) error {
+
+	repo, err := store.GetRepo(groupName, repoName)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if store.IsRepoRemote(repo) {
+		return log.DebugPrint("charts in rempote repo cannot be deleted")
+	}
+	home, _ := store.GetGroupHelmHome(groupName)
+
+	if chartVersion != nil {
+
+		cp, err := locateChartPath(groupName, repoName, name, *chartVersion, keyring)
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+
+		err = os.Remove(*cp)
+		if err != nil && !os.IsNotExist(err) {
+			return log.DebugPrint(err)
+		}
+
+		err = index(home.LocalRepository(), repo.Entry.URL, "")
+		if err != nil {
+			log.ErrorPrint("reindexing fail after delete chart: %v", err)
+			return log.DebugPrint(err)
+		}
+		return nil
+	}
+	//删除chart所有的版本
+	indexPath := repo.Entry.Cache
+	indexF, err := helm_repo.LoadIndexFile(indexPath)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	cvs, ok := indexF.Entries[name]
+	if !ok {
+		return log.DebugPrint("chart  %v doesn't exist", name)
+	}
+
+	for _, cv := range cvs {
+		cp, err := locateChartPath(groupName, repoName, name, cv.Version, keyring)
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+
+		err = os.Remove(*cp)
+		if err != nil && !os.IsNotExist(err) {
+			return log.DebugPrint(err)
+		}
+
+	}
+
+	err = index(home.LocalRepository(), repo.Entry.URL, "")
+	if err != nil {
+		log.ErrorPrint("reindexing fail after delete chart: %v", err)
+		return log.DebugPrint(err)
+	}
+
+	return nil
+
+}
+func index(dir, url, mergeTo string) error {
+	//指定index文件路径
+	out := filepath.Join(dir, "index.yaml")
+
+	//解析指定目录下的*.tgz文件为chart,并且添加到IndexFile对象中
+	i, err := helm_repo.IndexDirectory(dir, url)
+	if err != nil {
+		return err
+	}
+	//如果指定的文件不为空,则合并两个index文件
+	if mergeTo != "" {
+		i2, err := helm_repo.LoadIndexFile(mergeTo)
+		if err != nil {
+			return fmt.Errorf("Merge failed: %s", err)
+		}
+		i.Merge(i2)
+	}
+	i.SortEntries()
+	return i.WriteFile(out, 0755)
+}
+
 //name是包名
 
+//将指定的包下载到$HELM_HOME/cache/archive目录中
+//不管是否已经存在,都会下载.即使用已经存在同名的包,也会重新下载
+//TODO:加锁
+//TODO:更改,如果是Local repo,直接返回相应的chart包
 func locateChartPath(groupName, repoName, name, version string, keyring string) (*string, error) {
 	home, err := store.GetGroupHelmHome(groupName)
 	if err != nil {
@@ -170,12 +287,37 @@ func locateChartPath(groupName, repoName, name, version string, keyring string) 
 	if err != nil {
 		return nil, err
 	}
+	//如果是本地local,直接返回相应的路径
+	if !store.IsRepoRemote(repo) {
+		chartTgz := name + "-" + version + ".tgz"
+		path := home.LocalRepository(chartTgz)
+		if _, err := os.Stat(path); err == nil {
+			return &path, nil
+		} else {
+			if os.IsNotExist(err) {
+				return nil, log.DebugPrint("chart %v-%v not found", name, version)
 
+			}
+			return nil, err
+		}
+
+	}
+
+	//log.DebugPrint(home.Archive())
 	if _, err := os.Stat(home.Archive()); os.IsNotExist(err) {
 		os.MkdirAll(home.Archive(), 0744)
 	}
 
 	settings := helm_env.EnvSettings{Home: *home}
+	/*
+		crepo := filepath.Join(settings.Home.Repository(), name)
+		if _, err := os.Stat(crepo); err == nil {
+			return filepath.Abs(crepo)
+		} else {
+			if
+		}
+	*/
+
 	dl := helm_downloader.ChartDownloader{
 		HelmHome: *home,
 		Out:      os.Stdout,

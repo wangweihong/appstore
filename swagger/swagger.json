@@ -86,6 +86,7 @@
                 "tags": [
                     "store"
                 ],
+                "description": "获取指定repo的Chart",
                 "operationId": "StoreController.仓库",
                 "parameters": [
                     {
@@ -112,7 +113,50 @@
                     {
                         "in": "path",
                         "name": "chart",
-                        "description": "模板",
+                        "description": "报名",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            },
+            "delete": {
+                "tags": [
+                    "store"
+                ],
+                "description": "删除指定repo的Chart",
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "chart",
+                        "description": "包名",
                         "required": true,
                         "type": "string"
                     },
@@ -131,11 +175,12 @@
                 }
             }
         },
-        "/store/repo/{repo}/group/{group}/chart/{chart}/resource": {
-            "post": {
+        "/store/repo/{repo}/group/{group}/chart/{chart}/version/{version}": {
+            "get": {
                 "tags": [
                     "store"
                 ],
+                "description": "获取指定repo的Chart",
                 "operationId": "StoreController.仓库",
                 "parameters": [
                     {
@@ -167,7 +212,58 @@
                         "type": "string"
                     },
                     {
-                        "in": "query",
+                        "in": "path",
+                        "name": "version",
+                        "description": "指定版本",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/store/repo/{repo}/group/{group}/chart/{chart}/version/{version}/resource": {
+            "post": {
+                "tags": [
+                    "store"
+                ],
+                "description": "获取指定repo的解析后的chart",
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "chart",
+                        "description": "模板",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
                         "name": "version",
                         "description": "指定版本",
                         "type": "string"
@@ -190,11 +286,12 @@
                 }
             }
         },
-        "/store/repo/{repo}/group/{group}/chart/{chart}/templates": {
+        "/store/repo/{repo}/group/{group}/chart/{chart}/version/{version}/templates": {
             "get": {
                 "tags": [
                     "store"
                 ],
+                "description": "获取指定repo的Chart的模板",
                 "operationId": "StoreController.仓库",
                 "parameters": [
                     {
@@ -226,7 +323,7 @@
                         "type": "string"
                     },
                     {
-                        "in": "query",
+                        "in": "path",
                         "name": "version",
                         "description": "指定版本",
                         "type": "string"
@@ -240,11 +337,12 @@
                 }
             }
         },
-        "/store/repo/{repo}/group/{group}/chart/{chart}/values": {
+        "/store/repo/{repo}/group/{group}/chart/{chart}/version/{version}/values": {
             "get": {
                 "tags": [
                     "store"
                 ],
+                "description": "获取指定repo的Chart的配置",
                 "operationId": "StoreController.仓库",
                 "parameters": [
                     {
@@ -276,7 +374,7 @@
                         "type": "string"
                     },
                     {
-                        "in": "query",
+                        "in": "path",
                         "name": "version",
                         "description": "指定版本",
                         "type": "string"
@@ -295,6 +393,7 @@
                 "tags": [
                     "store"
                 ],
+                "description": "获取指定repo的Charts",
                 "operationId": "StoreController.仓库",
                 "parameters": [
                     {

@@ -11,6 +11,11 @@ import (
 	helm_repo "k8s.io/helm/pkg/repo"
 )
 
+const (
+	localRepositoryIndexFile = "index.yaml"
+	localRepository          = "local"
+)
+
 var (
 	HelmHome    string
 	HelmCommand = "/bin/helm"
@@ -18,13 +23,60 @@ var (
 	EtcdHost    string
 )
 
-func EnsureDefaultRepoFile(homePath string) error {
+func InitLocalRepo(homePath string, localRepositoryURL string) error {
+	home := helmpath.Home(homePath)
+	repoFile := home.RepositoryFile()
+	indexFile := home.LocalRepository(localRepositoryIndexFile)
+	cacheFile := home.CacheIndex("local")
+
+	f, err := helm_repo.LoadRepositoriesFile(repoFile)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if fi, err := os.Stat(indexFile); err != nil {
+		i := helm_repo.NewIndexFile()
+		if err := i.WriteFile(indexFile, 0644); err != nil {
+			return log.DebugPrint(err)
+		}
+
+		//TODO: take this out and replace with helm update functionality
+		os.Symlink(indexFile, cacheFile)
+	} else if fi.IsDir() {
+		return log.DebugPrint(fmt.Errorf("%s must be a file, not a directory", indexFile))
+	}
+
+	entry := &helm_repo.Entry{
+		Name:  localRepository,
+		URL:   localRepositoryURL,
+		Cache: cacheFile,
+	}
+
+	f.Update(entry)
+
+	if err := f.WriteFile(repoFile, 0644); err != nil {
+		return log.DebugPrint(err)
+	}
+
+	return nil
+}
+
+//只创建repo文件
+func EnsureRepoFile(homePath string) error {
 	home := helmpath.Home(homePath)
 
 	repoFile := home.RepositoryFile()
 	if fi, err := os.Stat(repoFile); err != nil {
 		log.DebugPrint("Creating %s \n", repoFile)
 		f := helm_repo.NewRepoFile()
+		/*
+			lr, err := initLocalRepo(home, localRepositoryURL)
+			if err != nil {
+				return log.DebugPrint(err)
+			}
+			f.Add(lr)
+		*/
+
 		if err := f.WriteFile(repoFile, 0644); err != nil {
 			return err
 		}
@@ -86,11 +138,17 @@ func InitHelmEnv(home string) error {
 		return err
 	}
 
-	err = EnsureDefaultRepoFile(home)
+	err = EnsureRepoFile(home)
 	if err != nil {
 		return err
 	}
+	err = InitLocalRepo(home, "")
+	if err != nil {
+		return err
+	}
+
 	return nil
+
 }
 
 func init() {

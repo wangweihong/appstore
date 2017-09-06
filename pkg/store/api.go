@@ -29,7 +29,7 @@ func (e *RepoError) Error() string {
 
 type RepoParam struct {
 	Name     string `json:"name"`
-	Url      string `json:"url"`
+	URL      string `json:"url"`
 	CertFile string `json:"certfile"`
 	KeyFile  string `json:"keyfile"`
 	CAFile   string `json:"cafile"`
@@ -49,11 +49,11 @@ func GetGroupHelmHome(groupName string) (*helmpath.Home, error) {
 }
 
 func AddRepo(groupName string, param RepoParam) error {
-	return addOrUpdateRepo(groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, false)
+	return addOrUpdateRepo(groupName, param.Name, param.URL, param.CertFile, param.KeyFile, param.CAFile, false)
 }
 
 func UpateRepo(groupName string, param RepoParam) error {
-	return addOrUpdateRepo(groupName, param.Name, param.Url, param.CertFile, param.KeyFile, param.CAFile, true)
+	return addOrUpdateRepo(groupName, param.Name, param.URL, param.CertFile, param.KeyFile, param.CAFile, true)
 }
 
 func addOrUpdateRepo(groupName, name, url string, certFile, keyFile, caFile string, update bool) error {
@@ -146,10 +146,16 @@ func GetRepo(groupName, repoName string) (*Repo, error) {
 }
 
 func IsRepoRemote(repo *Repo) bool {
-	prefix := "http://127.0.0.1"
-	if strings.HasPrefix(repo.Entry.URL, prefix) {
+	/*
+		prefix := "http://127.0.0.1"
+		if strings.HasPrefix(repo.Entry.URL, prefix) {
+			return false
+		}
+	*/
+	if strings.TrimSpace(repo.Entry.URL) == "" {
 		return false
 	}
+
 	return true
 }
 
@@ -161,13 +167,18 @@ func deleteRepo(groupName, repoName string) error {
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}
+
 	home := g.Home
 	//	realname := GenerateRealRepoName(groupName, repoName)
 	realname := repoName
 
-	_, ok = g.Repos[realname]
+	repo, ok := g.Repos[realname]
 	if !ok {
 		return log.ErrorPrint(ErrRepoNotFound)
+	}
+
+	if !IsRepoRemote(&repo) {
+		return log.DebugPrint("Local Repo don't support delete")
 	}
 
 	r, err := helm_repo.LoadRepositoriesFile(home.RepositoryFile())

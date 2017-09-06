@@ -25,3 +25,15 @@ type ChartParseArgs struct {
 	ReleaseName string `json:"releasename"`
 	Values      string `json:"values"` //用于替换默认的Values
 }
+
+type ChartCreateParam struct {
+	Template   string
+	Values     string
+	Comment    string
+	Keyword    string
+	Version    string
+	AppVersion string
+	Name       string
+	Engine     string
+	Dependency string
+}
