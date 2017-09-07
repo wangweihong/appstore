@@ -445,25 +445,6 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 
 	log.DebugPrint(cpath)
 
-	ch, err := helm_chartutil.Load(cpath)
-	if err != nil {
-		return log.DebugPrint(err)
-	}
-
-	if filepath.Base(cpath) != ch.Metadata.Name {
-		return log.DebugPrint(fmt.Errorf("directory name (%s) and Chart.yaml name (%s) must match", filepath.Base(path), ch.Metadata.Name))
-	}
-
-	if reqs, err := helm_chartutil.LoadRequirements(ch); err == nil {
-		if err := checkDependencies(ch, reqs); err != nil {
-			return log.DebugPrint(err)
-		}
-	} else {
-		if err != helm_chartutil.ErrRequirementsNotFound {
-			return log.DebugPrint(err)
-		}
-	}
-
 	/*
 		dest := home.LocalRepository()
 		name, err := helm_chartutil.Save(ch, dest)
@@ -487,16 +468,20 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 		return log.DebugPrint(err)
 	}
 	for _, k := range yamlFiles {
+		log.DebugPrint(k)
 		err := os.Remove(k)
 		if err != nil {
 			return log.DebugPrint(err)
 		}
 	}
+
 	resourcePath := chartTemplates + "/" + resourceYaml
 	err = ioutil.WriteFile(resourcePath, []byte(param.Template), 0644)
 	if err != nil {
 		return log.DebugPrint(err)
 	}
+
+	log.DebugPrint("write to resoure file", resourcePath)
 
 	valuesPath := cpath + "/" + valuesYaml
 	err = ioutil.WriteFile(valuesPath, []byte(param.Values), 0644)
@@ -504,9 +489,31 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 		return log.DebugPrint(err)
 	}
 
+	log.DebugPrint("write to values file", valuesPath)
+
+	ch, err := helm_chartutil.Load(cpath)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if filepath.Base(cpath) != ch.Metadata.Name {
+		return log.DebugPrint(fmt.Errorf("directory name (%s) and Chart.yaml name (%s) must match", filepath.Base(path), ch.Metadata.Name))
+	}
+
+	if reqs, err := helm_chartutil.LoadRequirements(ch); err == nil {
+		if err := checkDependencies(ch, reqs); err != nil {
+			return log.DebugPrint(err)
+		}
+	} else {
+		if err != helm_chartutil.ErrRequirementsNotFound {
+			return log.DebugPrint(err)
+		}
+	}
+
 	err = helm_repo.AddChartToLocalRepo(ch, home.LocalRepository())
 	if err != nil {
 		return log.DebugPrint(err)
 	}
+	log.DebugPrint("package chart and load to local repo")
 	return nil
 }
