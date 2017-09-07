@@ -2,6 +2,7 @@ package charts
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"appstore/pkg/helm"
 	"appstore/pkg/log"
 	"appstore/pkg/store"
 
@@ -25,7 +27,20 @@ import (
 	helm_util "k8s.io/helm/pkg/releaseutil"
 )
 
-const notesFileSuffix = "NOTES.txt"
+const (
+	notesFileSuffix = "NOTES.txt"
+	resourceYaml    = "resource.yaml"
+	valuesYaml      = "values.yaml"
+)
+
+var (
+	ErrChartNotFound = fmt.Errorf("chart not found")
+	ErrChartHasExist = fmt.Errorf("chart has exist")
+)
+
+func IsChartNotFound(err error) bool {
+	return strings.HasPrefix(err.Error(), ErrChartNotFound.Error())
+}
 
 type Manifest struct {
 	Name    string
@@ -74,6 +89,8 @@ func ParseChart(groupName, repoName, name string, strValue *string, chartVersion
 		return nil, log.DebugPrint(err)
 	}
 	e := helm_engine.New()
+	//缺失的key报错
+	e.Strict = true
 	files, err := e.Render(chartReq, valuesToRender)
 	if err != nil {
 		return nil, log.DebugPrint(err)
@@ -124,21 +141,35 @@ func ParseChart(groupName, repoName, name string, strValue *string, chartVersion
 
 }
 
+func GetChartVersion(groupName, repoName, name, version string) (*helm_repo.ChartVersion, error) {
+	vs, err := GetChart(groupName, repoName, name)
+	if err != nil {
+		return nil, log.DebugPrint(err)
+	}
+
+	for _, v := range vs {
+		if v.Version == version {
+			return &v, nil
+		}
+	}
+	return nil, log.DebugPrint("%v:%v", ErrChartNotFound, name+"-"+version)
+}
+
 func GetChart(groupName, repoName, name string) ([]helm_repo.ChartVersion, error) {
 	repo, err := store.GetRepo(groupName, repoName)
 	if err != nil {
 		return nil, log.DebugPrint(err)
 	}
 
-	index := repo.Entry.Cache
-	indexF, err := helm_repo.LoadIndexFile(index)
+	indexPath := repo.Entry.Cache
+	indexF, err := helm_repo.LoadIndexFile(indexPath)
 	if err != nil {
 		return nil, log.DebugPrint(err)
 	}
 
 	cv, ok := indexF.Entries[name]
 	if !ok {
-		return nil, log.DebugPrint("chart %v doesn't exist int repo %v", name, repoName)
+		return nil, log.DebugPrint(fmt.Errorf("%v:%v", ErrChartNotFound, name+"-"+repoName))
 	}
 
 	vs := make([]helm_repo.ChartVersion, 0)
@@ -207,7 +238,7 @@ func DeleteChart(groupName, repoName, name string, chartVersion *string, keyring
 			return log.DebugPrint(err)
 		}
 
-		err = index(home.LocalRepository(), repo.Entry.URL, "")
+		err = helm.Index(home.LocalRepository(), repo.Entry.URL, "")
 		if err != nil {
 			log.ErrorPrint("reindexing fail after delete chart: %v", err)
 			return log.DebugPrint(err)
@@ -239,7 +270,7 @@ func DeleteChart(groupName, repoName, name string, chartVersion *string, keyring
 
 	}
 
-	err = index(home.LocalRepository(), repo.Entry.URL, "")
+	err = helm.Index(home.LocalRepository(), repo.Entry.URL, "")
 	if err != nil {
 		log.ErrorPrint("reindexing fail after delete chart: %v", err)
 		return log.DebugPrint(err)
@@ -248,28 +279,6 @@ func DeleteChart(groupName, repoName, name string, chartVersion *string, keyring
 	return nil
 
 }
-func index(dir, url, mergeTo string) error {
-	//指定index文件路径
-	out := filepath.Join(dir, "index.yaml")
-
-	//解析指定目录下的*.tgz文件为chart,并且添加到IndexFile对象中
-	i, err := helm_repo.IndexDirectory(dir, url)
-	if err != nil {
-		return err
-	}
-	//如果指定的文件不为空,则合并两个index文件
-	if mergeTo != "" {
-		i2, err := helm_repo.LoadIndexFile(mergeTo)
-		if err != nil {
-			return fmt.Errorf("Merge failed: %s", err)
-		}
-		i.Merge(i2)
-	}
-	i.SortEntries()
-	return i.WriteFile(out, 0755)
-}
-
-//name是包名
 
 //将指定的包下载到$HELM_HOME/cache/archive目录中
 //不管是否已经存在,都会下载.即使用已经存在同名的包,也会重新下载
@@ -366,6 +375,138 @@ func checkDependencies(ch *helm_chart.Chart, reqs *helm_chartutil.Requirements) 
 
 	if len(missing) > 0 {
 		return fmt.Errorf("found in requirements.yaml, but missing in charts/ directory: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+type ChartCreateParam struct {
+	Template   string `json:"template"`
+	Values     string `json:"values"`
+	Comment    string
+	Keyword    string
+	Version    string `json:"version"`
+	Name       string `json:"name"`
+	Engine     string
+	Dependency []string
+	Describe   string `json:"describe"`
+}
+
+//创建一个临时目录
+//然后压缩成tgz包
+//存放于home.LocalRepositories
+/*
+
+{
+ "name":"testcreate",
+  "version":"0.1.0",
+	 "describe": "THI IS test!",
+	  "template": "apiVersion: extensions/v1beta1\nkind: Deployment\nmetadata:\n  name: {{ template \"fullname\" . }}\n  labels:\n    app: {{ template \"name\" . }}\n    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace \"+\" \"_\" }}\n    release: {{ .Release.Name }}\n    heritage: {{ .Release.Service }}\nspec:\n  replicas: {{ .Values.replicaCount }}\n  template:\n    metadata:\n      labels:\n        app: {{ template \"name\" . }}\n        release: {{ .Release.Name }}\n    spec:\n      containers:\n        - name: {{ .Chart.Name }}\n          image: \"{{ .Values.image.repository }}:{{ .Values.image.tag }}\"\n          imagePullPolicy: {{ .Values.image.pullPolicy }}\n          ports:\n            - containerPort: {{ .Values.service.internalPort }}\n          livenessProbe:\n            httpGet:\n              path: /\n              port: {{ .Values.service.internalPort }}\n          readinessProbe:\n            httpGet:\n              path: /\n              port: {{ .Values.service.internalPort }}\n          resources:\n{{ toYaml .Values.resources | indent 12 }}\n    {{- if .Values.nodeSelector }}\n      nodeSelector:\n{{ toYaml .Values.nodeSelector | indent 8 }}\n    {{- end }}\n\n{{- if .Values.ingress.enabled -}}\n{{- $serviceName := include \"fullname\" . -}}\n{{- $servicePort := .Values.service.externalPort -}}\n",
+		 "values": "# Default values for Sparda.\n# This is a YAML-formatted file.\n# Declare variables to be passed into your templates.\nreplicaCount: 1\nimage:\n  repository: nginx\n  tag: stable\n  pullPolicy: IfNotPresent\nservice:\n  name: nginx\n  type: ClusterIP\n  externalPort: 80\n  internalPort: 80\ningress:\n  enabled: false\n  # Used to create an Ingress record.\n  hosts:\n    - chart-example.local\n  annotations:\n    # kubernetes.io/ingress.class: nginx\n    # kubernetes.io/tls-acme: \"true\"\n  tls:\n    # Secrets must be manually created in the namespace.\n    # - secretName: chart-example-tls\n    #   hosts:\n    #     - chart-example.local\nresources: {}\n  # We usually recommend not to specify default resources and to leave this as a conscious \n  # choice for the user. This also increases chances charts run on environments with little \n  # resources, such as Minikube. If you do want to specify resources, uncomment the following \n  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.\n  # limits:\n  #  cpu: 100m\n  #  memory: 128Mi\n  #requests:\n  #  cpu: 100m\n  #  memory: 128Mi\n"
+	 }
+*/
+func CreateChart(group, repo string, param ChartCreateParam) error {
+	//TODO:检测chart包是否已经存在
+
+	_, err := GetChartVersion(group, repo, param.Name, param.Version)
+	if err != nil && !IsChartNotFound(err) {
+		return log.DebugPrint(err)
+	}
+	if err == nil {
+		return log.DebugPrint(fmt.Errorf("%v:%v", ErrChartHasExist, param.Name+"-"+param.Version))
+	}
+
+	home, err := store.GetGroupHelmHome(group)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	cname := param.Name
+	cfile := helm_chart.Metadata{
+		Name:        param.Name,
+		ApiVersion:  helm_chartutil.ApiVersionV1,
+		Description: param.Describe,
+		Version:     param.Version,
+	}
+
+	log.DebugPrint(cname)
+
+	path, err := ioutil.TempDir("", cname)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer os.RemoveAll(path)
+
+	log.DebugPrint(path)
+	log.DebugPrint(filepath.Dir(path))
+
+	cpath, err := helm_chartutil.Create(&cfile, path)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	log.DebugPrint(cpath)
+
+	ch, err := helm_chartutil.Load(cpath)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if filepath.Base(cpath) != ch.Metadata.Name {
+		return log.DebugPrint(fmt.Errorf("directory name (%s) and Chart.yaml name (%s) must match", filepath.Base(path), ch.Metadata.Name))
+	}
+
+	if reqs, err := helm_chartutil.LoadRequirements(ch); err == nil {
+		if err := checkDependencies(ch, reqs); err != nil {
+			return log.DebugPrint(err)
+		}
+	} else {
+		if err != helm_chartutil.ErrRequirementsNotFound {
+			return log.DebugPrint(err)
+		}
+	}
+
+	/*
+		dest := home.LocalRepository()
+		name, err := helm_chartutil.Save(ch, dest)
+		if err == nil {
+			log.DebugPrint("Successfully packaged chart and saved it to: %s\n", name)
+		} else {
+			return fmt.Errorf("Failed to save: %s", err)
+		}
+
+	*/
+
+	chartTemplates := cpath + "/templates"
+	/*
+		files, err := ioutil.ReadDir(chartTemplates)
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+	*/
+	yamlFiles, err := filepath.Glob(chartTemplates + "/*.yaml")
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	for _, k := range yamlFiles {
+		err := os.Remove(k)
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+	}
+	resourcePath := chartTemplates + "/" + resourceYaml
+	err = ioutil.WriteFile(resourcePath, []byte(param.Template), 0644)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	valuesPath := cpath + "/" + valuesYaml
+	err = ioutil.WriteFile(valuesPath, []byte(param.Values), 0644)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	err = helm_repo.AddChartToLocalRepo(ch, home.LocalRepository())
+	if err != nil {
+		return log.DebugPrint(err)
 	}
 	return nil
 }

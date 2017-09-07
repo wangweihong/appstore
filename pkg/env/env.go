@@ -1,6 +1,7 @@
 package env
 
 import (
+	"appstore/pkg/helm"
 	"appstore/pkg/log"
 	"fmt"
 	"os"
@@ -117,6 +118,7 @@ func EnsureDirectories(homePath string) error {
 
 //初始化helm env
 func InitHelmEnv(home string) error {
+	localRepositoryURL := ""
 	/*
 		cmd := exec.Command(HelmCommand, "init", "--client-only", "--home", home, "--dry-run")
 		var out bytes.Buffer
@@ -142,9 +144,14 @@ func InitHelmEnv(home string) error {
 	if err != nil {
 		return err
 	}
-	err = InitLocalRepo(home, "")
+	err = InitLocalRepo(home, localRepositoryURL)
 	if err != nil {
 		return err
+	}
+
+	err = helm.Index(helmpath.Home(home).LocalRepository(), localRepositoryURL, "")
+	if err != nil {
+		return nil
 	}
 
 	return nil

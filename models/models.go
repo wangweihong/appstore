@@ -1,6 +1,7 @@
 package models
 
 import (
+	"appstore/pkg/charts"
 	"appstore/pkg/store"
 )
 
@@ -26,14 +27,4 @@ type ChartParseArgs struct {
 	Values      string `json:"values"` //用于替换默认的Values
 }
 
-type ChartCreateParam struct {
-	Template   string
-	Values     string
-	Comment    string
-	Keyword    string
-	Version    string
-	AppVersion string
-	Name       string
-	Engine     string
-	Dependency string
-}
+type ChartCreateParam charts.ChartCreateParam

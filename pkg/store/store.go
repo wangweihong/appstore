@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	helm   *HelmManager
+	hm     *HelmManager
 	Locker = &sync.Mutex{}
 )
 
@@ -59,16 +59,16 @@ func fetchGroupRepoName(repoName string) (string, string) {
 */
 
 func InitHelmManager(home string) error {
-	helm = &HelmManager{}
+	hm = &HelmManager{}
 	//	helm.Home = home
-	helm.RepoGroups = make(map[string]RepoGroup)
+	hm.RepoGroups = make(map[string]RepoGroup)
 
 	groupfiles, err := ioutil.ReadDir(home)
 	if err != nil {
 		return log.DebugPrint(err)
 	}
 
-	groups := helm.RepoGroups
+	groups := hm.RepoGroups
 	for _, f := range groupfiles {
 		groupName := f.Name()
 		var group RepoGroup
@@ -85,7 +85,7 @@ func InitHelmManager(home string) error {
 		}
 		groups[groupName] = group
 	}
-	helm.RepoGroups = groups
+	hm.RepoGroups = groups
 
 	//需要加锁,如果底层文件不存在,应该先构建
 	/*
@@ -128,7 +128,7 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	log.DebugPrint(*helm)
+	log.DebugPrint(*hm)
 
 	/*
 		err = WatchDir(home)

@@ -424,6 +424,49 @@
                     },
                     "500": {}
                 }
+            },
+            "post": {
+                "tags": [
+                    "store"
+                ],
+                "description": "指定repo创建新的Chart",
+                "operationId": "StoreController.仓库",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Token",
+                        "description": "'Token'",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "group",
+                        "description": "组名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "repo",
+                        "description": "仓库名",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "chart参数",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{string}  success!"
+                    },
+                    "500": {}
+                }
             }
         },
         "/store/repos": {

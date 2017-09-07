@@ -39,7 +39,7 @@ func GetGroupHelmHome(groupName string) (*helmpath.Home, error) {
 	Locker.Lock()
 	defer Locker.Unlock()
 
-	group, ok := helm.RepoGroups[groupName]
+	group, ok := hm.RepoGroups[groupName]
 	if !ok {
 		return nil, ErrGroupNotFound
 	}
@@ -58,7 +58,7 @@ func UpateRepo(groupName string, param RepoParam) error {
 
 func addOrUpdateRepo(groupName, name, url string, certFile, keyFile, caFile string, update bool) error {
 	//检测组
-	g, ok := helm.RepoGroups[groupName]
+	g, ok := hm.RepoGroups[groupName]
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}
@@ -112,13 +112,13 @@ func addOrUpdateRepo(groupName, name, url string, certFile, keyFile, caFile stri
 
 func ListAllRepos() map[string]RepoGroup {
 
-	return helm.RepoGroups
+	return hm.RepoGroups
 }
 
 func ListRepos(groupName string) (map[string]Repo, error) {
 
 	repos := make(map[string]Repo)
-	g, ok := helm.RepoGroups[groupName]
+	g, ok := hm.RepoGroups[groupName]
 	if !ok {
 		return nil, log.ErrorPrint(ErrGroupNotFound)
 	}
@@ -131,7 +131,7 @@ func ListRepos(groupName string) (map[string]Repo, error) {
 }
 
 func GetRepo(groupName, repoName string) (*Repo, error) {
-	g, ok := helm.RepoGroups[groupName]
+	g, ok := hm.RepoGroups[groupName]
 	if !ok {
 		return nil, log.ErrorPrint(ErrGroupNotFound)
 	}
@@ -163,7 +163,7 @@ func DeleteRepo(groupName, repoName string) error {
 	return deleteRepo(groupName, repoName)
 }
 func deleteRepo(groupName, repoName string) error {
-	g, ok := helm.RepoGroups[groupName]
+	g, ok := hm.RepoGroups[groupName]
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}

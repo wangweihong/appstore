@@ -296,6 +296,16 @@ func (this *StoreController) GetChartTemplate() {
 		}
 	}
 
+	//依赖的模板
+	for _, j := range ch.Dependencies {
+		for _, k := range j.Templates {
+			if strings.HasSuffix(k.Name, ".yaml") {
+				templates = append(templates, string(k.Data))
+				str = fmt.Sprintf("%v\n%v\n%v", k.Name, str, string(k.Data))
+			}
+		}
+	}
+
 	this.normalReturn(str)
 }
 
@@ -324,16 +334,22 @@ func (this *StoreController) GetChartValue() {
 		this.errReturn(err, 500)
 		return
 	}
+
+	var str string
 	/*
-		var str string
 		templates := make([]string, 0)
 		for _, j := range ch.Values {
 			templates = append(templates, string(j.Data))
 			str = fmt.Sprintf("%v\n%v\n%v", j.Name, str, string(j.Data))
 		}
 	*/
+	str = fmt.Sprintf("%v", ch.Values.Raw)
+	//依赖的配置值
+	for _, j := range ch.Dependencies {
+		str = fmt.Sprintf("%v\n%v", str, j.Values.Raw)
+	}
 
-	this.normalReturn(ch.Values.Raw)
+	this.normalReturn(str)
 }
 
 // 获取指定repo的解析后的chart
@@ -405,11 +421,54 @@ func (this *StoreController) DeleteChart() {
 	chart := this.Ctx.Input.Param(":chart")
 	version := this.GetString("version")
 
-	err := charts.DeleteChart(group, repo, chart, &version, "")
+	var p *string
+	if version != "" {
+		p = &version
+	}
+
+	err := charts.DeleteChart(group, repo, chart, p, "")
 	if err != nil {
 		this.errReturn(err, 500)
 		return
 	}
+
+	this.normalReturn("ok")
+}
+
+// 指定repo创建新的Chart
+// @Title 仓库
+// @Description 指定repo创建新的Chart
+// @Param Token header string true 'Token'
+// @Param group path string true "组名"
+// @Param repo path string true "仓库名"
+// @Param body body string true "chart参数"
+// @Success 201 {string}  success!
+// @Failure 500
+// @router /repo/:repo/group/:group/charts [Post]
+func (this *StoreController) CreateChart() {
+	group := this.Ctx.Input.Param(":group")
+	repo := this.Ctx.Input.Param(":repo")
+
+	if this.Ctx.Input.RequestBody == nil {
+		err := fmt.Errorf("must commit repo create param")
+		this.errReturn(err, 500)
+		return
+	}
+
+	var param models.ChartCreateParam
+
+	err := json.Unmarshal(this.Ctx.Input.RequestBody, &param)
+	if err != nil {
+		this.errReturn(err, 500)
+		return
+	}
+
+	err = charts.CreateChart(group, repo, charts.ChartCreateParam(param))
+	if err != nil {
+		this.errReturn(err, 500)
+		return
+	}
+	//check Param valid
 
 	this.normalReturn("ok")
 }
