@@ -42,6 +42,10 @@ func IsChartNotFound(err error) bool {
 	return strings.HasPrefix(err.Error(), ErrChartNotFound.Error())
 }
 
+func IsChartHasExist(err error) bool {
+	return strings.HasPrefix(err.Error(), ErrChartHasExist.Error())
+}
+
 type Manifest struct {
 	Name    string
 	Content string
@@ -90,6 +94,9 @@ func ParseChart(groupName, repoName, name string, strValue *string, chartVersion
 	}
 	e := helm_engine.New()
 	//缺失的key报错
+	//不能加,不然会出现_helper.tpl中无法解析的问题
+	//template: haha/templates/_helpers.tpl:14:40: executing "fullname" at <.Values.nameOverride>: map has no entry for key "nameOverride"
+	//还是加上,上面的原因是_helper.tpl中用了.Values.nameOverride.但并没有传该值
 	e.Strict = true
 	files, err := e.Render(chartReq, valuesToRender)
 	if err != nil {
@@ -458,18 +465,144 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 
 	chartTemplates := cpath + "/templates"
 	/*
-		files, err := ioutil.ReadDir(chartTemplates)
+	 */
+	//FIXME: _help.tpl会导致解析失败
+	/*
+		yamlFiles, err := filepath.Glob(chartTemplates + "/*.yaml")
 		if err != nil {
 			return log.DebugPrint(err)
 		}
+		for _, k := range yamlFiles {
+			log.DebugPrint(k)
+			err := os.Remove(k)
+			if err != nil {
+				return log.DebugPrint(err)
+			}
+		}
 	*/
-	yamlFiles, err := filepath.Glob(chartTemplates + "/*.yaml")
+	yamlFiles, err := ioutil.ReadDir(chartTemplates)
 	if err != nil {
 		return log.DebugPrint(err)
 	}
 	for _, k := range yamlFiles {
 		log.DebugPrint(k)
-		err := os.Remove(k)
+		err := os.Remove(chartTemplates + "/" + k.Name())
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+	}
+
+	resourcePath := chartTemplates + "/" + resourceYaml
+	err = ioutil.WriteFile(resourcePath, []byte(param.Template), 0644)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	log.DebugPrint("write to resoure file", resourcePath)
+
+	valuesPath := cpath + "/" + valuesYaml
+	err = ioutil.WriteFile(valuesPath, []byte(param.Values), 0644)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	log.DebugPrint("write to values file", valuesPath)
+
+	ch, err := helm_chartutil.Load(cpath)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	if filepath.Base(cpath) != ch.Metadata.Name {
+		return log.DebugPrint(fmt.Errorf("directory name (%s) and Chart.yaml name (%s) must match", filepath.Base(path), ch.Metadata.Name))
+	}
+
+	if reqs, err := helm_chartutil.LoadRequirements(ch); err == nil {
+		if err := checkDependencies(ch, reqs); err != nil {
+			return log.DebugPrint(err)
+		}
+	} else {
+		if err != helm_chartutil.ErrRequirementsNotFound {
+			return log.DebugPrint(err)
+		}
+	}
+
+	err = helm_repo.AddChartToLocalRepo(ch, home.LocalRepository())
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	log.DebugPrint("package chart and load to local repo")
+	return nil
+}
+
+func UpdateChart(group, repo string, param ChartCreateParam) error {
+	//TODO:检测chart包是否已经存在
+
+	_, err := GetChartVersion(group, repo, param.Name, param.Version)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	home, err := store.GetGroupHelmHome(group)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	cname := param.Name
+	cfile := helm_chart.Metadata{
+		Name:        param.Name,
+		ApiVersion:  helm_chartutil.ApiVersionV1,
+		Description: param.Describe,
+		Version:     param.Version,
+	}
+
+	log.DebugPrint(cname)
+
+	path, err := ioutil.TempDir("", cname)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer os.RemoveAll(path)
+
+	log.DebugPrint(path)
+	log.DebugPrint(filepath.Dir(path))
+
+	cpath, err := helm_chartutil.Create(&cfile, path)
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+
+	log.DebugPrint(cpath)
+
+	/*
+		dest := home.LocalRepository()
+		name, err := helm_chartutil.Save(ch, dest)
+		if err == nil {
+			log.DebugPrint("Successfully packaged chart and saved it to: %s\n", name)
+		} else {
+			return fmt.Errorf("Failed to save: %s", err)
+		}
+
+	*/
+
+	chartTemplates := cpath + "/templates"
+	/*
+		yamlFiles, err := filepath.Glob(chartTemplates + "/*.yaml")
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+		for _, k := range yamlFiles {
+			log.DebugPrint(k)
+			err := os.Remove(k)
+			if err != nil {
+				return log.DebugPrint(err)
+			}
+		}
+	*/
+
+	yamlFiles, err := ioutil.ReadDir(chartTemplates)
+	for _, k := range yamlFiles {
+		log.DebugPrint(k)
+		err := os.Remove(chartTemplates + "/" + k.Name())
 		if err != nil {
 			return log.DebugPrint(err)
 		}

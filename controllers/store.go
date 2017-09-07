@@ -472,3 +472,41 @@ func (this *StoreController) CreateChart() {
 
 	this.normalReturn("ok")
 }
+
+// 更新repo中的Chart
+// @Title 仓库
+// @Description 更新repo中的Chart
+// @Param Token header string true 'Token'
+// @Param group path string true "组名"
+// @Param repo path string true "仓库名"
+// @Param body body string true "chart参数"
+// @Success 201 {string}  success!
+// @Failure 500
+// @router /repo/:repo/group/:group/charts [Put]
+func (this *StoreController) UpdateChart() {
+	group := this.Ctx.Input.Param(":group")
+	repo := this.Ctx.Input.Param(":repo")
+
+	if this.Ctx.Input.RequestBody == nil {
+		err := fmt.Errorf("must commit repo create param")
+		this.errReturn(err, 500)
+		return
+	}
+
+	var param models.ChartCreateParam
+
+	err := json.Unmarshal(this.Ctx.Input.RequestBody, &param)
+	if err != nil {
+		this.errReturn(err, 500)
+		return
+	}
+
+	err = charts.UpdateChart(group, repo, charts.ChartCreateParam(param))
+	if err != nil {
+		this.errReturn(err, 500)
+		return
+	}
+	//check Param valid
+
+	this.normalReturn("ok")
+}

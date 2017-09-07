@@ -104,4 +104,11 @@ func init() {
 			AllowHTTPMethods: []string{"Post"},
 			Params: nil})
 
+	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
+		beego.ControllerComments{
+			Method: "UpdateChart",
+			Router: `/repo/:repo/group/:group/charts`,
+			AllowHTTPMethods: []string{"Put"},
+			Params: nil})
+
 }
