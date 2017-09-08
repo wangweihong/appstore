@@ -111,7 +111,7 @@ func RegisterExternalGroupNoticer(kind string) (chan ExternalGroupEvent, error) 
 
 }
 
-func init() {
+func Init() {
 	err := watchGroupChange(env.EtcdHost)
 	if err != nil {
 		panic(err.Error())

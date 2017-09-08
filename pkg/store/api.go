@@ -1,6 +1,7 @@
 package store
 
 import (
+	"appstore/pkg/fl"
 	"appstore/pkg/log"
 	"fmt"
 	"os"
@@ -56,13 +57,22 @@ func UpateRepo(groupName string, param RepoParam) error {
 	return addOrUpdateRepo(groupName, param.Name, param.URL, param.CertFile, param.KeyFile, param.CAFile, true)
 }
 
+//TODO:检测local不允许更改
 func addOrUpdateRepo(groupName, name, url string, certFile, keyFile, caFile string, update bool) error {
 	//检测组
+	Locker.Lock()
+	defer Locker.Unlock()
 	g, ok := hm.RepoGroups[groupName]
 	if !ok {
 		return log.ErrorPrint(ErrGroupNotFound)
 	}
 	home := g.Home
+
+	err := fl.WatchAndWaitLock()
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer fl.ReleaseLock()
 
 	//	realname := GenerateRealRepoName(groupName, name)
 	realname := name
@@ -107,6 +117,7 @@ func addOrUpdateRepo(groupName, name, url string, certFile, keyFile, caFile stri
 	if err != nil {
 		return log.DebugPrint(err)
 	}
+
 	return nil
 }
 
@@ -163,10 +174,17 @@ func DeleteRepo(groupName, repoName string) error {
 	return deleteRepo(groupName, repoName)
 }
 func deleteRepo(groupName, repoName string) error {
+	Locker.Lock()
+	defer Locker.Unlock()
 	g, ok := hm.RepoGroups[groupName]
 	if !ok {
-		return log.ErrorPrint(ErrGroupNotFound)
+		return log.DebugPrint(ErrGroupNotFound)
 	}
+	err := fl.WatchAndWaitLock()
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer fl.ReleaseLock()
 
 	home := g.Home
 	//	realname := GenerateRealRepoName(groupName, repoName)

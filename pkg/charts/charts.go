@@ -10,6 +10,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"appstore/pkg/fl"
 	"appstore/pkg/helm"
 	"appstore/pkg/log"
 	"appstore/pkg/store"
@@ -194,6 +195,11 @@ func InspectChart(groupName, repoName, name string, chartversion *string, keyrin
 	if chartversion != nil {
 		version = *chartversion
 	}
+	err := fl.WatchAndWaitLock()
+	if err != nil {
+		return nil, log.DebugPrint(err)
+	}
+	defer fl.ReleaseLock()
 
 	//获取指定包的路径
 	cp, err := locateChartPath(groupName, repoName, name, version, keyring)
@@ -228,6 +234,12 @@ func DeleteChart(groupName, repoName, name string, chartVersion *string, keyring
 	if err != nil {
 		return log.DebugPrint(err)
 	}
+
+	err = fl.WatchAndWaitLock()
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer fl.ReleaseLock()
 
 	if store.IsRepoRemote(repo) {
 		return log.DebugPrint("charts in rempote repo cannot be deleted")
@@ -412,6 +424,12 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 		return log.DebugPrint(fmt.Errorf("%v:%v", ErrChartHasExist, param.Name+"-"+param.Version))
 	}
 
+	err = fl.WatchAndWaitLock()
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer fl.ReleaseLock()
+
 	home, err := store.GetGroupHelmHome(group)
 	if err != nil {
 		return log.DebugPrint(err)
@@ -442,34 +460,8 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 
 	log.DebugPrint(cpath)
 
-	/*
-		dest := home.LocalRepository()
-		name, err := helm_chartutil.Save(ch, dest)
-		if err == nil {
-			log.DebugPrint("Successfully packaged chart and saved it to: %s\n", name)
-		} else {
-			return fmt.Errorf("Failed to save: %s", err)
-		}
-
-	*/
-
 	chartTemplates := cpath + "/templates"
-	/*
-	 */
 	//FIXME: _help.tpl会导致解析失败
-	/*
-		yamlFiles, err := filepath.Glob(chartTemplates + "/*.yaml")
-		if err != nil {
-			return log.DebugPrint(err)
-		}
-		for _, k := range yamlFiles {
-			log.DebugPrint(k)
-			err := os.Remove(k)
-			if err != nil {
-				return log.DebugPrint(err)
-			}
-		}
-	*/
 	yamlFiles, err := ioutil.ReadDir(chartTemplates)
 	if err != nil {
 		return log.DebugPrint(err)
@@ -533,6 +525,12 @@ func UpdateChart(group, repo string, param ChartCreateParam) error {
 		return log.DebugPrint(err)
 	}
 
+	err = fl.WatchAndWaitLock()
+	if err != nil {
+		return log.DebugPrint(err)
+	}
+	defer fl.ReleaseLock()
+
 	home, err := store.GetGroupHelmHome(group)
 	if err != nil {
 		return log.DebugPrint(err)
@@ -563,32 +561,9 @@ func UpdateChart(group, repo string, param ChartCreateParam) error {
 
 	log.DebugPrint(cpath)
 
-	/*
-		dest := home.LocalRepository()
-		name, err := helm_chartutil.Save(ch, dest)
-		if err == nil {
-			log.DebugPrint("Successfully packaged chart and saved it to: %s\n", name)
-		} else {
-			return fmt.Errorf("Failed to save: %s", err)
-		}
-
-	*/
-
 	chartTemplates := cpath + "/templates"
-	/*
-		yamlFiles, err := filepath.Glob(chartTemplates + "/*.yaml")
-		if err != nil {
-			return log.DebugPrint(err)
-		}
-		for _, k := range yamlFiles {
-			log.DebugPrint(k)
-			err := os.Remove(k)
-			if err != nil {
-				return log.DebugPrint(err)
-			}
-		}
-	*/
 
+	//
 	yamlFiles, err := ioutil.ReadDir(chartTemplates)
 	for _, k := range yamlFiles {
 		log.DebugPrint(k)

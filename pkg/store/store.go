@@ -8,13 +8,15 @@ import (
 	"appstore/pkg/env"
 	"appstore/pkg/group"
 	"appstore/pkg/log"
+	"appstore/pkg/watcher"
 
 	"k8s.io/helm/pkg/helm/helmpath"
 	helm_repo "k8s.io/helm/pkg/repo"
 )
 
 const (
-	splitor = "__"
+	splitor   = "__"
+	EventType = "store"
 )
 
 var (
@@ -49,16 +51,6 @@ func GenerateRealRepoName(group, repoName string) string {
 	return repoName
 }
 
-/*
-func fetchGroupRepoName(repoName string) (string, string) {
-	splits := strings.SplitN(repoName, splitor, 2)
-	if len(splits) != 2 {
-		return "", ""
-	}
-	return splits[0], splits[1]
-}
-*/
-
 func InitHelmManager(home string) error {
 	hm = &HelmManager{}
 	//	helm.Home = home
@@ -72,57 +64,37 @@ func InitHelmManager(home string) error {
 	groups := hm.RepoGroups
 	for _, f := range groupfiles {
 		groupName := f.Name()
-		var group RepoGroup
-		group.Repos = make(map[string]Repo)
-		group.Home = helmpath.Home(home + "/" + groupName)
+		groupHome := home + "/" + groupName
 
-		repofile, err := helm_repo.LoadRepositoriesFile(group.Home.RepositoryFile())
-		if err != nil {
-			return log.DebugPrint(err)
-		}
-		for _, v := range repofile.Repositories {
-			group.Repos[v.Name] = Repo{Entry: v}
-
-		}
-		groups[groupName] = group
-	}
-	hm.RepoGroups = groups
-
-	//需要加锁,如果底层文件不存在,应该先构建
-	/*
-		f, err := repo.LoadRepositoriesFile(home.RepositoryFile())
+		group, err := loadGroupRepo(groupHome)
 		if err != nil {
 			return err
 		}
 
-		if len(f.Repositories) == 0 {
-			return nil
-		}
-
-		groups := helm.RepoGroups
-		for _, v := range f.Repositories {
-			groupName, _ := fetchGroupRepoName(v.Name)
-			//忽略非组repos
-			if groupName == "" {
-				continue
-			}
-			g, ok := groups[groupName]
-			if ok {
-				g.Repos[v.Name] = Repo{Entry: v}
-				groups[groupName] = g
-			} else {
-				var g RepoGroup
-				g.Repos = make(map[string]Repo)
-				g.Repos[v.Name] = Repo{Entry: v}
-				groups[groupName] = g
-			}
-		}
-	*/
+		groups[groupName] = *group
+	}
+	hm.RepoGroups = groups
 
 	return nil
 }
 
-func init() {
+func loadGroupRepo(groupHome string) (*RepoGroup, error) {
+	var group RepoGroup
+	group.Repos = make(map[string]Repo)
+	group.Home = helmpath.Home(groupHome)
+	repofile, err := helm_repo.LoadRepositoriesFile(group.Home.RepositoryFile())
+	if err != nil {
+		return nil, log.DebugPrint(err)
+	}
+
+	for _, v := range repofile.Repositories {
+		group.Repos[v.Name] = Repo{Entry: v}
+	}
+
+	return &group, nil
+}
+
+func Init() {
 	//home := helmpath.Home(env.HelmHome)
 
 	err := InitHelmManager(env.StoreHome)
@@ -136,25 +108,13 @@ func init() {
 		panic(err.Error())
 	}
 	go handleGroupEvent(ch)
-	/*
-		err = WatchDir(home)
-		if err != nil {
-			panic(err.Error())
-		}
-	*/
+	ch2, err := watcher.Register(EventType)
+	if err != nil {
+		panic(err.Error())
+
+	}
+
+	go handleStoreEvent(ch2)
 
 	log.DebugPrint("init complete")
-	//	time.Sleep(10 * time.Second)
-	/*
-		err = AddRepo("test1", "local1234l", "http://127.0.0.1:8879/charts", home, "", "", "", false)
-		if err != nil {
-			panic(err.Error())
-		}
-	*/
-	/*
-		err = DeleteRepo("test1", "local1234l", home)
-		if err != nil {
-			panic(err.Error())
-		}
-	*/
 }

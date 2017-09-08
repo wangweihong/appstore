@@ -2,6 +2,7 @@ package start
 
 import (
 	"appstore/pkg/env"
+	"appstore/pkg/fl"
 	"appstore/pkg/group"
 
 	"appstore/pkg/log"
@@ -17,9 +18,15 @@ var (
 //TODO: file lock
 //TODO: 为每个组的Local repo启动local repo server
 func InitDirectory(home string) error {
+	err := fl.WatchAndWaitLock()
+	if err != nil {
+		return err
+	}
+	defer fl.ReleaseLock()
+
 	log.DebugPrint(home)
 
-	err := os.MkdirAll(home, 0755)
+	err = os.MkdirAll(home, 0755)
 	if err != nil && os.IsExist(err) != true {
 		return fmt.Errorf("create home %v fail for %v", home, err)
 	}
@@ -74,69 +81,14 @@ func InitDirectory(home string) error {
 			}
 		}
 
-		/*
-			stopChan, url, err := InitLocalRepoServer(ghome)
-			if err != nil {
-				return log.ErrorPrint(err)
-			}
-
-			var s LocalServer
-			s.Url = url
-			s.StopChan = stopChan
-			LocalServers[k] = s
-		*/
 	}
 	return nil
 }
 
-/*
-
-func InitGroupsLocalServer(home string) error {
-	log.DebugPrint("start to init local repo servers")
-	Locker.Lock()
-	defer Locker.Unlock()
-	files, err := ioutil.ReadDir(home)
-	if err != nil {
-		return log.DebugPrint(err)
-	}
-
-	for _, f := range files {
-		groupName := f.Name()
-		ghome := home + "/" + groupName
-		log.DebugPrint("start to init local repo servers : %v", f.Name())
-		ch, url, err := InitLocalRepoServer(ghome)
-		if err != nil {
-			return log.DebugPrint(err)
-		}
-
-		log.DebugPrint("start to init local repo  : %v,url:%v", f.Name(), url)
-
-		err = env.InitLocalRepo(helmpath.Home(ghome), url)
-		if err != nil {
-			return log.DebugPrint(err)
-		}
-
-		var s LocalServer
-		s.Url = url
-		s.StopChan = ch
-		LocalServers[groupName] = s
-	}
-	return nil
-
-}
-
-*/
-func init() {
+func Init() {
 	err := InitDirectory(env.StoreHome)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	/*
-		err = InitGroupsLocalServer(env.StoreHome)
-		if err != nil {
-			panic(err.Error())
-		}
-
-	*/
 }

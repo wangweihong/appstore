@@ -104,7 +104,7 @@ func EnsureDirectories(homePath string) error {
 	}
 	for _, p := range configDirectories {
 		if fi, err := os.Stat(p); err != nil {
-			log.DebugPrint("Creating %s \n", p)
+			//log.DebugPrint("Creating %s \n", p)
 			if err := os.MkdirAll(p, 0755); err != nil {
 				return fmt.Errorf("Could not create %s: %s", p, err)
 			}
@@ -158,15 +158,9 @@ func InitHelmEnv(home string) error {
 
 }
 
-func init() {
-	/*
-		HelmHome = os.Getenv("HELM_HOME")
-		if HelmHome == "" || !filepath.IsAbs(HelmHome) {
-			panic(" env $HELM_HOME no set oor not abosolute path")
-		}
-	*/
+func Init() {
 	StoreHome = strings.TrimSpace(os.Getenv("STORE_HOME"))
-	if StoreHome == "" || !filepath.IsAbs(StoreHome) {
+	if strings.TrimSpace(StoreHome) == "" || !filepath.IsAbs(StoreHome) {
 		panic(" env $HELM_HOME not set or not abosolute path")
 	}
 	log.DebugPrint(StoreHome)
@@ -181,12 +175,5 @@ func init() {
 	if cmd != "" {
 		HelmCommand = cmd
 	}
-
-	/*
-		err := InitHelmEnv()
-		if err != nil {
-			panic(err.Error())
-		}
-	*/
 
 }

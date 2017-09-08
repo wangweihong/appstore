@@ -226,7 +226,7 @@
                 }
             }
         },
-        "/store/repo/{repo}/group/{group}/chart/{chart}/version/{version}/resource": {
+        "/store/repo/{repo}/group/{group}/chart/{chart}/version/{version}/parse": {
             "post": {
                 "tags": [
                     "store"

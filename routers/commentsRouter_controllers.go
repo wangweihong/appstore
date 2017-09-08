@@ -86,7 +86,7 @@ func init() {
 	beego.GlobalControllerRouter["appstore/controllers:StoreController"] = append(beego.GlobalControllerRouter["appstore/controllers:StoreController"],
 		beego.ControllerComments{
 			Method: "GetChartParsed",
-			Router: `/repo/:repo/group/:group/chart/:chart/version/:version/resource`,
+			Router: `/repo/:repo/group/:group/chart/:chart/version/:version/parse`,
 			AllowHTTPMethods: []string{"Post"},
 			Params: nil})
 

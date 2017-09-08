@@ -363,7 +363,7 @@ func (this *StoreController) GetChartValue() {
 // @Param body body models.ChartParseArgs true "解析参数"
 // @Success 201 {string}  success!
 // @Failure 500
-// @router /repo/:repo/group/:group/chart/:chart/version/:version/resource [Post]
+// @router /repo/:repo/group/:group/chart/:chart/version/:version/parse [Post]
 func (this *StoreController) GetChartParsed() {
 	group := this.Ctx.Input.Param(":group")
 	repo := this.Ctx.Input.Param(":repo")

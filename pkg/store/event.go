@@ -2,12 +2,12 @@ package store
 
 import (
 	"appstore/pkg/env"
+	"appstore/pkg/fl"
 	"appstore/pkg/group"
 	"appstore/pkg/log"
+	"appstore/pkg/watcher"
 	"os"
 	"strings"
-
-	"k8s.io/helm/pkg/helm/helmpath"
 )
 
 const (
@@ -17,24 +17,28 @@ const (
 func handleGroupEvent(ch <-chan group.ExternalGroupEvent) {
 	for {
 		ge := <-ch
+
 		switch ge.Action {
 		case group.EventDelete:
 			if strings.TrimSpace(ge.Group) == "" {
 				log.DebugPrint("event handler catch invalid group %v", ge.Group)
+				fl.ReleaseLock()
 				continue
 			}
 
-			Locker.Lock()
+			err := fl.WatchAndWaitLock()
+			if err != nil {
+				log.ErrorPrint("err")
+				continue
+			}
 			path := env.StoreHome + "/" + ge.Group
-			err := os.RemoveAll(path)
+			err = os.RemoveAll(path)
 			if err != nil && !os.IsNotExist(err) {
-				Locker.Unlock()
+				fl.ReleaseLock()
 				log.ErrorPrint(err)
 				continue
 			}
-
-			delete(hm.RepoGroups, ge.Group)
-			Locker.Unlock()
+			fl.ReleaseLock()
 
 		case group.EventCreate:
 
@@ -43,30 +47,94 @@ func handleGroupEvent(ch <-chan group.ExternalGroupEvent) {
 				continue
 			}
 
-			Locker.Lock()
-			path := env.StoreHome + "/" + ge.Group
-			err := os.MkdirAll(path, 0755)
+			err := fl.WatchAndWaitLock()
 			if err != nil {
-				Locker.Unlock()
+				log.ErrorPrint("err")
+				continue
+			}
+
+			path := env.StoreHome + "/" + ge.Group
+			err = os.MkdirAll(path, 0755)
+			if err != nil {
 				log.DebugPrint("event handler catch invalid group %v", ge.Group)
+				fl.ReleaseLock()
 				continue
 			}
 
 			err = env.InitHelmEnv(path)
 			if err != nil {
-				Locker.Unlock()
 				log.DebugPrint("init helm home %v fail: %v", path, err)
+				fl.ReleaseLock()
 				continue
 
 			}
+			fl.ReleaseLock()
+		}
 
-			var rg RepoGroup
-			rg.Repos = make(map[string]Repo)
-			rg.Home = helmpath.Home(path)
+	}
+}
 
-			hm.RepoGroups[ge.Group] = rg
+func handleStoreEvent(ch chan watcher.Event) {
+	for {
+		e := <-ch
+		log.DebugPrint("recieve event...", e)
+		switch e.Type {
+		//需要加载文件
+		case watcher.RepoFile:
+			if e.Event == watcher.Write {
 
-			Locker.Unlock()
+				err := fl.WatchAndWaitLock()
+				if err != nil {
+					log.DebugPrint(err)
+					continue
+				}
+
+				repoGroup, err := loadGroupRepo(e.Path)
+				if err != nil {
+					log.DebugPrint(err)
+					fl.ReleaseLock()
+					continue
+				}
+				Locker.Lock()
+				hm.RepoGroups[e.Group] = *repoGroup
+				Locker.Unlock()
+
+			}
+			//组删除,不需要初始化helm arch,已经被初始化过了
+			//但还是需要读文件以获取内容
+		case watcher.GroupFile:
+			if e.Event == watcher.Create {
+
+				err := fl.WatchAndWaitLock()
+				if err != nil {
+					log.DebugPrint(err)
+					continue
+				}
+
+				repoGroup, err := loadGroupRepo(e.Path)
+				if err != nil {
+					log.DebugPrint(err)
+					fl.ReleaseLock()
+					continue
+				}
+
+				Locker.Lock()
+				hm.RepoGroups[e.Group] = *repoGroup
+
+				Locker.Unlock()
+			}
+			if e.Event == watcher.Remove {
+				Locker.Lock()
+				delete(hm.RepoGroups, e.Group)
+				Locker.Unlock()
+
+			}
+			//更新Local repo的数据
+			//chart不通过内存缓存
+		case watcher.LocalIndexFile:
+			if e.Event == watcher.Write {
+
+			}
 		}
 	}
 }
