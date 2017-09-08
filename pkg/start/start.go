@@ -19,7 +19,7 @@ var (
 func InitDirectory(home string) error {
 	log.DebugPrint(home)
 
-	err := os.Mkdir(home, 0755)
+	err := os.MkdirAll(home, 0755)
 	if err != nil && os.IsExist(err) != true {
 		return fmt.Errorf("create home %v fail for %v", home, err)
 	}

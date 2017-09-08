@@ -12,6 +12,8 @@ import (
 
 const (
 	etcdGroupExternalKey = "/ufleet/group"
+	EventDelete          = "delete"
+	EventCreate          = "create"
 )
 
 var (
@@ -76,15 +78,16 @@ func watchGroupChange(addr string) error {
 			switch res.Action {
 			case "delete": //忽略根Key的事件
 				ge.Group = group
-				ge.Action = "delete"
+				ge.Action = EventDelete
 
 			case "set":
 				ge.Group = group
-				ge.Action = "set"
+				ge.Action = EventCreate
 
 			default:
 				continue
 			}
+			log.DebugPrint("catch group event :", ge)
 			for _, v := range externalgroupNoticers {
 				go func(ch chan ExternalGroupEvent) {
 					ch <- ge
@@ -95,16 +98,16 @@ func watchGroupChange(addr string) error {
 
 	return nil
 }
-func RegisterExternalGroupNoticer(kind string) error {
+func RegisterExternalGroupNoticer(kind string) (chan ExternalGroupEvent, error) {
 	externalgroupLock.Lock()
 	defer externalgroupLock.Unlock()
 
 	if _, ok := externalgroupNoticers[kind]; ok {
-		return fmt.Errorf("externalgroup Noticer \"%v\" has registered", kind)
+		return nil, fmt.Errorf("externalgroup Noticer \"%v\" has registered", kind)
 	}
-
-	externalgroupNoticers[kind] = make(chan ExternalGroupEvent)
-	return nil
+	ch := make(chan ExternalGroupEvent)
+	externalgroupNoticers[kind] = ch
+	return ch, nil
 
 }
 

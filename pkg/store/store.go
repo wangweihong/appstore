@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"appstore/pkg/env"
+	"appstore/pkg/group"
 	"appstore/pkg/log"
 
 	"k8s.io/helm/pkg/helm/helmpath"
@@ -130,6 +131,11 @@ func init() {
 	}
 	log.DebugPrint(*hm)
 
+	ch, err := group.RegisterExternalGroupNoticer(GroupEventKind)
+	if err != nil {
+		panic(err.Error())
+	}
+	go handleGroupEvent(ch)
 	/*
 		err = WatchDir(home)
 		if err != nil {

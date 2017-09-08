@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "appstore/pkg/env"
+	_ "appstore/pkg/group"
 	_ "appstore/pkg/start"
 	_ "appstore/pkg/store"
 	_ "appstore/routers"
