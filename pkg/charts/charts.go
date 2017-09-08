@@ -31,6 +31,7 @@ const (
 	notesFileSuffix = "NOTES.txt"
 	resourceYaml    = "resource.yaml"
 	valuesYaml      = "values.yaml"
+	helpers         = "_helpers.tpl"
 )
 
 var (
@@ -396,21 +397,10 @@ type ChartCreateParam struct {
 	Engine     string
 	Dependency []string
 	Describe   string `json:"describe"`
+	Helpers    string `json:"helpers"`
 }
 
-//创建一个临时目录
-//然后压缩成tgz包
-//存放于home.LocalRepositories
-/*
-
-{
- "name":"testcreate",
-  "version":"0.1.0",
-	 "describe": "THI IS test!",
-	  "template": "apiVersion: extensions/v1beta1\nkind: Deployment\nmetadata:\n  name: {{ template \"fullname\" . }}\n  labels:\n    app: {{ template \"name\" . }}\n    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace \"+\" \"_\" }}\n    release: {{ .Release.Name }}\n    heritage: {{ .Release.Service }}\nspec:\n  replicas: {{ .Values.replicaCount }}\n  template:\n    metadata:\n      labels:\n        app: {{ template \"name\" . }}\n        release: {{ .Release.Name }}\n    spec:\n      containers:\n        - name: {{ .Chart.Name }}\n          image: \"{{ .Values.image.repository }}:{{ .Values.image.tag }}\"\n          imagePullPolicy: {{ .Values.image.pullPolicy }}\n          ports:\n            - containerPort: {{ .Values.service.internalPort }}\n          livenessProbe:\n            httpGet:\n              path: /\n              port: {{ .Values.service.internalPort }}\n          readinessProbe:\n            httpGet:\n              path: /\n              port: {{ .Values.service.internalPort }}\n          resources:\n{{ toYaml .Values.resources | indent 12 }}\n    {{- if .Values.nodeSelector }}\n      nodeSelector:\n{{ toYaml .Values.nodeSelector | indent 8 }}\n    {{- end }}\n\n{{- if .Values.ingress.enabled -}}\n{{- $serviceName := include \"fullname\" . -}}\n{{- $servicePort := .Values.service.externalPort -}}\n",
-		 "values": "# Default values for Sparda.\n# This is a YAML-formatted file.\n# Declare variables to be passed into your templates.\nreplicaCount: 1\nimage:\n  repository: nginx\n  tag: stable\n  pullPolicy: IfNotPresent\nservice:\n  name: nginx\n  type: ClusterIP\n  externalPort: 80\n  internalPort: 80\ningress:\n  enabled: false\n  # Used to create an Ingress record.\n  hosts:\n    - chart-example.local\n  annotations:\n    # kubernetes.io/ingress.class: nginx\n    # kubernetes.io/tls-acme: \"true\"\n  tls:\n    # Secrets must be manually created in the namespace.\n    # - secretName: chart-example-tls\n    #   hosts:\n    #     - chart-example.local\nresources: {}\n  # We usually recommend not to specify default resources and to leave this as a conscious \n  # choice for the user. This also increases chances charts run on environments with little \n  # resources, such as Minikube. If you do want to specify resources, uncomment the following \n  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.\n  # limits:\n  #  cpu: 100m\n  #  memory: 128Mi\n  #requests:\n  #  cpu: 100m\n  #  memory: 128Mi\n"
-	 }
-*/
+// TODO: 依赖
 func CreateChart(group, repo string, param ChartCreateParam) error {
 	//TODO:检测chart包是否已经存在
 
@@ -535,8 +525,8 @@ func CreateChart(group, repo string, param ChartCreateParam) error {
 	return nil
 }
 
+//TODO: 依赖
 func UpdateChart(group, repo string, param ChartCreateParam) error {
-	//TODO:检测chart包是否已经存在
 
 	_, err := GetChartVersion(group, repo, param.Name, param.Version)
 	if err != nil {
@@ -623,6 +613,18 @@ func UpdateChart(group, repo string, param ChartCreateParam) error {
 	}
 
 	log.DebugPrint("write to values file", valuesPath)
+
+	//TODO:更改local/remote repo的依赖处理方式
+
+	if strings.TrimSpace(param.Helpers) != "" {
+		helpersPath := cpath + "/" + helpers
+
+		err = ioutil.WriteFile(helpersPath, []byte(param.Values), 0644)
+		if err != nil {
+			return log.DebugPrint(err)
+		}
+
+	}
 
 	ch, err := helm_chartutil.Load(cpath)
 	if err != nil {
